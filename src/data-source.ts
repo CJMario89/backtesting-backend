@@ -24,7 +24,7 @@ export const databaseConfig = {
   port: 5432,
   username: 'cjmario',
   password: 'cjmario',
-  database: 'blockchain',
+  database: 'database',
   synchronize: false,
   logging: false,
 } as DataSourceOptions;

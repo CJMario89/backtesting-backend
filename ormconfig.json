@@ -6,7 +6,7 @@
     "port": 5432,
     "username": "cjmario",
     "password": "cjmario",
-    "database": "blockchain",
+    "database": "database",
     "synchronize": false,
     "entities": ["src/entities/**/*.{js,ts}"]
   }
