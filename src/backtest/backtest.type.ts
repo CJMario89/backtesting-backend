@@ -9,6 +9,8 @@ export type Indicator = {
 export type Signal = {
   id: string;
   indicator?: Indicator;
+  action: string;
+  logicOperator: string;
   upperBound: {
     id?: string;
     name?: string;
@@ -24,6 +26,9 @@ export type BackTestInputDto = {
   symbol: string;
   start: string;
   end: string;
+  capital: number;
+  takeProfit: number;
+  stopLoss: number;
   interval: string;
   buySignals: Signal[][];
   sellSignals: Signal[][];
@@ -42,6 +47,7 @@ export type Trade = {
 };
 
 export type BackTestOutput = {
+  candles: Candle[];
   buySellCandlesPairs: Trade[];
   initailCaptial: number;
   capital: number;
@@ -52,4 +58,5 @@ export type BackTestOutput = {
   annualizedReturn: number;
   startTime: string;
   endTime: string;
+  timeFrame: string;
 };

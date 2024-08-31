@@ -6,38 +6,76 @@ import { Injectable } from '@nestjs/common';
 //   Signal,
 //   Trade,
 // } from './backtest.type';
-import { EntityManager } from 'typeorm';
-import { InjectEntityManager } from '@nestjs/typeorm';
 import {
   BackTestInputDto,
   BackTestOutput,
   Indicator,
   Signal,
   Trade,
-} from './backtest.type.js';
-import { AppDataSource } from 'src/data-source';
+} from './backtest.type';
 import { Candle } from 'src/candles/candles.type';
+import { PrismaService } from 'src/prisma/prisma-service';
+
+type FasterMACDResult = {
+  histogram: number;
+  signal: number;
+  macd: number;
+};
 
 @Injectable()
 export class BacktestService {
   private tradingSignals = {};
   public SignalsMap = {};
-  constructor(
-    @InjectEntityManager(AppDataSource)
-    private readonly entityManager: EntityManager,
-  ) {
+  constructor(private prisma: PrismaService) {
     (async () => {
       const TradingSignals = await import('trading-signals');
-
       const SignalsMap = {
-        rsi: TradingSignals.FasterRSI,
-        ema: TradingSignals.FasterEMA,
-        sma: TradingSignals.FasterSMA,
+        RSI: TradingSignals.FasterRSI,
+        EMA: TradingSignals.FasterEMA,
+        SMA: TradingSignals.FasterSMA,
+        MACD: TradingSignals.FasterMACD,
+        BBANDS: TradingSignals.FasterBollingerBands,
+        BBANDSW: TradingSignals.FasterBollingerBandsWidth,
+        CG: TradingSignals.FasterCG,
+        MAD: TradingSignals.FasterMAD,
+        MOM: TradingSignals.FasterMOM,
+        ROC: TradingSignals.FasterROC,
+        STOCHRSI: TradingSignals.FasterStochasticRSI,
+        WMA: TradingSignals.FasterWMA,
+        WSMA: TradingSignals.FasterWSMA,
+        AC: TradingSignals.FasterAC,
+        AO: TradingSignals.FasterAO,
+        ATR: TradingSignals.FasterATR,
+        CCI: TradingSignals.FasterCCI,
+        DX: TradingSignals.FasterDX,
+        ADX: TradingSignals.FasterADX,
+        STOCH: TradingSignals.FasterStochasticOscillator,
+        TR: TradingSignals.FasterTR,
+        OBV: TradingSignals.FasterOBV,
       };
       type Signals =
         | typeof TradingSignals.FasterRSI
         | typeof TradingSignals.FasterEMA
-        | typeof TradingSignals.FasterSMA;
+        | typeof TradingSignals.FasterSMA
+        | typeof TradingSignals.FasterMACD
+        | typeof TradingSignals.FasterBollingerBands
+        | typeof TradingSignals.FasterBollingerBandsWidth
+        | typeof TradingSignals.FasterCG
+        | typeof TradingSignals.FasterMAD
+        | typeof TradingSignals.FasterMOM
+        | typeof TradingSignals.FasterROC
+        | typeof TradingSignals.FasterStochasticRSI
+        | typeof TradingSignals.FasterWMA
+        | typeof TradingSignals.FasterWSMA
+        | typeof TradingSignals.FasterAC
+        | typeof TradingSignals.FasterAO
+        | typeof TradingSignals.FasterATR
+        | typeof TradingSignals.FasterCCI
+        | typeof TradingSignals.FasterDX
+        | typeof TradingSignals.FasterADX
+        | typeof TradingSignals.FasterStochasticOscillator
+        | typeof TradingSignals.FasterTR
+        | typeof TradingSignals.FasterOBV;
       type SingalNames = keyof typeof SignalsMap;
       this.SignalsMap = SignalsMap as Record<SingalNames, Signals>;
     })();
@@ -48,47 +86,59 @@ export class BacktestService {
     interval,
     start,
     end,
+    capital,
+    takeProfit,
+    stopLoss,
     buySignals,
     sellSignals,
   }: BackTestInputDto): Promise<BackTestOutput> {
-    const capital = 10000;
-    const candles: Candle[] = await this.entityManager.query(
-      `
+    const candles: Candle[] = await this.prisma.$queryRawUnsafe(`
       SELECT 
-        "openTime",
+        "time",
         "open",
         "high",
         "low",
         "close",
         "volume"
       FROM "${symbol}_${interval}"
-      WHERE "openTime" >= '${start}' AND "openTime" <= '${end}'`,
-    );
-    console.log(start, end, candles.length, interval);
-    console.log(candles);
+      WHERE "time" >= '${start}' AND "time" <= '${end}'
+      ORDER BY "time" ASC`);
+    // console.debug(start, end, candles.length, interval);
+    // console.debug(buySignals);
+    // console.debug(buySignals.map((signals) => signals.map((signal) => signal)));
+
+    // console.debug(
+    //   buySignals.map((signals) => signals.map((signal) => signal.lowerBound)),
+    // );
+    // console.debug(candles);
     this.setTradeSignals({
       buySignals,
       sellSignals,
     });
+
+    // console.debug(this.SignalsMap);
     const { trades, totalProfit, maxDrawdown } = this.getBackTestResult({
       candles,
       buySignals,
       sellSignals,
       capital,
+      takeProfit,
+      stopLoss,
     });
 
-    // const totalProfit = trades.reduce((acc, trade) => acc + trade.profit, 0);
-    const totalDuration = trades.reduce(
-      (acc, trade) => acc + trade.duration,
-      0,
-    );
-    // const totalMaxDrawdown = Math.max(
-    //   ...trades.map((trade) => trade.maxDrawdown),
-    // );
+    const totalDuration = Number(end) - Number(start);
     const profitRate = totalProfit / capital;
     const totalYears = totalDuration / (1000 * 60 * 60 * 24 * 365);
     const annualizedReturn = Math.pow(1 + profitRate, 1 / totalYears) - 1;
     return {
+      candles: candles.map((candle) => ({
+        time: Number(candle.time) / 1000,
+        open: Number(candle.open),
+        high: Number(candle.high),
+        low: Number(candle.low),
+        close: Number(candle.close),
+        volume: Number(candle.volume),
+      })),
       startTime: start,
       endTime: end,
       initailCaptial: capital,
@@ -99,6 +149,7 @@ export class BacktestService {
       totalMaxDrawdown: maxDrawdown,
       profitRate,
       annualizedReturn,
+      timeFrame: interval,
     };
   }
 
@@ -107,12 +158,21 @@ export class BacktestService {
     buySignals,
     sellSignals,
     capital,
+    takeProfit,
+    stopLoss,
   }: {
     candles: Candle[];
     buySignals: Signal[][];
     sellSignals: Signal[][];
     capital: number;
-  }): { trades: Trade[]; totalProfit: number; maxDrawdown: number } {
+    takeProfit?: number;
+    stopLoss?: number;
+  }): {
+    trades: Trade[];
+    totalProfit: number;
+    maxDrawdown: number;
+  } {
+    console.debug(buySignals);
     const trades: Trade[] = [];
     const trade: Trade = {
       buy: null,
@@ -130,6 +190,7 @@ export class BacktestService {
     candles.forEach((candle, index) => {
       let shouldBuy = false;
       let shouldSell = false;
+      const lastCandle = candles[index - 1 < 0 ? 0 : index - 1];
       const _buySignals = [];
       const _sellSignals = [];
       //input signal.upperBound, signal.lowerBound, signal-logic(and or), currentValue, then return shouldBuy
@@ -138,11 +199,13 @@ export class BacktestService {
         let shouldBuySignal = true;
         signals.forEach((signal) => {
           //should before update currentValue
-          const upperBound = this.getBoundValue('upperBound', signal, candle);
-          const lowerBound = this.getBoundValue('lowerBound', signal, candle);
-          const currentValue = this.tradingSignals[signal.id].update(
-            candle.close,
-          );
+          const { upperBound, lowerBound, currentValue } = this.getAllValues({
+            signal,
+            candle,
+            lastCandle,
+          });
+          // console.debug(currentValue);
+          // console.debug(signal);
           if (
             typeof currentValue === 'undefined' ||
             typeof upperBound === 'undefined' ||
@@ -153,7 +216,7 @@ export class BacktestService {
           if (currentValue > upperBound || currentValue < lowerBound) {
             shouldBuySignal = false; //can't buy
           }
-          // console.log(
+          // console.debug(
           //   'buy',
           //   candle.close,
           //   lowerBound,
@@ -172,11 +235,11 @@ export class BacktestService {
       sellSignals.forEach((signals) => {
         let shouldSellSignal = true;
         signals.forEach((signal) => {
-          const upperBound = this.getBoundValue('upperBound', signal, candle);
-          const lowerBound = this.getBoundValue('lowerBound', signal, candle);
-          const currentValue = this.tradingSignals[signal.id].update(
-            candle.close,
-          );
+          const { upperBound, lowerBound, currentValue } = this.getAllValues({
+            signal,
+            candle,
+            lastCandle,
+          });
           if (
             typeof currentValue === undefined ||
             typeof upperBound === undefined ||
@@ -187,7 +250,7 @@ export class BacktestService {
           if (currentValue > upperBound || currentValue < lowerBound) {
             shouldSellSignal = false; //one of signals fail,then it can't sell
           }
-          // console.log(
+          // console.debug(
           //   'sell',
           //   candle.close,
           //   lowerBound,
@@ -207,16 +270,24 @@ export class BacktestService {
           ((Number(candle.close) - Number(trade.buy.close)) /
             Number(trade.buy.close)) *
           100;
-        // console.log(trade.capital, currentProfit, maxDrawdown);
+        // console.debug(trade.capital, currentProfit, maxDrawdown);
         if (drawdown < maxDrawdown) {
           maxDrawdown = drawdown;
           trade.maxDrawdown = maxDrawdown;
         }
+        const percentProfit = drawdown;
+        if (percentProfit < stopLoss) {
+          shouldSell = true;
+        }
+
+        if (percentProfit > takeProfit) {
+          shouldSell = true;
+        }
       }
-      // console.log(index);
-      // console.log(hasPosition);
-      // console.log(shouldBuy);
-      // console.log(candle.close);
+      // console.debug(index);
+      // console.debug(hasPosition);
+      // console.debug(shouldBuy);
+      // console.debug(candle.close);
       if (shouldBuy && !hasPosition) {
         trade.buy = candle;
         trade.buySignals = _buySignals;
@@ -229,8 +300,7 @@ export class BacktestService {
           Number(trade.buy.close);
         trade.profit = trade.capital * trade.percentProfit;
         trade.capital = trade.capital + trade.profit;
-        trade.duration =
-          Number(trade.sell.openTime) - Number(trade.buy.openTime);
+        trade.duration = Number(trade.sell.time) - Number(trade.buy.time);
         trades.push({ ...trade });
         hasPosition = false;
         totalProfit += trade.profit;
@@ -243,8 +313,7 @@ export class BacktestService {
           Number(trade.buy.close);
         trade.profit = trade.capital * trade.percentProfit;
         trade.capital = trade.capital + trade.profit;
-        trade.duration =
-          Number(trade.sell.openTime) - Number(trade.buy.openTime);
+        trade.duration = Number(trade.sell.time) - Number(trade.buy.time);
         trades.push({ ...trade });
         hasPosition = false;
         totalProfit += trade.profit;
@@ -255,29 +324,6 @@ export class BacktestService {
       totalProfit,
       maxDrawdown,
     };
-  }
-
-  // value: 0, 'previous', Indicator
-  getBoundValue(
-    bound: 'upperBound' | 'lowerBound',
-    signal: Signal,
-    candle: Candle,
-  ) {
-    const boundValue: number | string | Indicator = signal[bound].value;
-    if (typeof boundValue === 'number') {
-      // max or number
-      return boundValue;
-    } else if (boundValue === 'previous') {
-      try {
-        return this.getTradingSignal(signal.id).getResult();
-      } catch (e) {
-        return;
-      }
-    } else {
-      return this.getTradingSignal(signal[bound].id).update(
-        Number(candle.close),
-      );
-    }
   }
 
   setTradeSignals({
@@ -297,9 +343,8 @@ export class BacktestService {
 
   setTradingSignal(signal: Signal) {
     const SignalsMap = this.SignalsMap;
-    this.tradingSignals[signal.id] = new SignalsMap[signal.indicator.name](
-      Number(signal.indicator.params.period),
-    );
+    const indicator = signal.indicator;
+    this.setCurrentTradingSignal({ signal, indicator });
     if (typeof signal.upperBound.value === 'object') {
       this.tradingSignals[signal.upperBound.id] = new SignalsMap[
         signal.upperBound.value.name
@@ -312,7 +357,196 @@ export class BacktestService {
     }
   }
 
+  setCurrentTradingSignal({
+    signal,
+    indicator,
+  }: {
+    signal: Signal;
+    indicator: Indicator;
+  }) {
+    const name = signal.indicator.name;
+    if (name === 'price') {
+      this.tradingSignals[signal.id] = 'price';
+      return;
+    } else if (name === 'volume') {
+      this.tradingSignals[signal.id] = 'volume';
+      return;
+    } else if (name === 'MACD') {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name](
+        new this.SignalsMap['EMA'](Number(indicator.params.short)),
+        new this.SignalsMap['EMA'](Number(indicator.params.long)),
+        new this.SignalsMap['EMA'](Number(indicator.params.signal)),
+      );
+      return;
+    } else if (name === 'BBANDS') {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name](
+        Number(indicator.params.period),
+        Number(indicator.params.deviation),
+      );
+      return;
+    } else if (name === 'AC') {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name](
+        Number(indicator.params.short),
+        Number(indicator.params.long),
+        Number(indicator.params.signal),
+      );
+      return;
+    } else if (name === 'AO') {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name](
+        Number(indicator.params.short),
+        Number(indicator.params.long),
+      );
+      return;
+    } else if (name === 'BBANDSW') {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name](
+        this.SignalsMap['BBANDSW'](
+          Number(indicator.params.period),
+          Number(indicator.params.deviation),
+        ),
+      );
+      return;
+    } else if (name === 'CG') {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name](
+        Number(indicator.params.period),
+        Number(indicator.params.signal),
+      );
+      return;
+    } else if (name === 'OBV' || name === 'TR') {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name]();
+      return;
+    } else if (name === 'Stochastic') {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name](
+        Number(indicator.params.period),
+        Number(indicator.params.kPeriod),
+        Number(indicator.params.dPeriod),
+      );
+      return;
+    } else {
+      this.tradingSignals[signal.id] = new this.SignalsMap[name](
+        Number(indicator.params.period),
+      );
+      return;
+    }
+  }
+
   getTradingSignal(signalId: string) {
     return this.tradingSignals[signalId];
+  }
+
+  getAllValues({
+    signal,
+    candle,
+    lastCandle,
+  }: {
+    signal: Signal;
+    candle: Candle;
+    lastCandle: Candle;
+  }) {
+    const upperBound = this.getBoundValue(
+      'upperBound',
+      signal,
+      candle,
+      lastCandle,
+    );
+    const lowerBound = this.getBoundValue(
+      'lowerBound',
+      signal,
+      candle,
+      lastCandle,
+    );
+
+    return {
+      upperBound,
+      lowerBound,
+      currentValue: this.getIndicatorValue({
+        signal,
+        candle,
+        signalId: signal.id,
+      }),
+    };
+  }
+  getIndicatorValue({
+    candle,
+    signal,
+    signalId,
+  }: {
+    candle: Candle;
+    signal: Signal;
+    signalId: string;
+  }) {
+    let value;
+    if (signalId === 'price') {
+      return candle.close;
+    }
+    if (signalId === 'volume') {
+      return candle.volume;
+    }
+    if (signal.indicator.params.input === 'candleVolume') {
+      value = this.getTradingSignal(signalId).update(candle);
+    } else if (signal.indicator.params.input === 'candle') {
+      value = this.getTradingSignal(signalId).update(candle);
+    } else {
+      value = this.getTradingSignal(signalId).update(candle.close);
+    }
+    // MACD or BBANDS or Stochastic
+    if (signal.indicator.params.resultOption && typeof value !== 'undefined') {
+      if (signal.indicator.name === 'ADX' || signal.indicator.name === 'DX') {
+        console.debug(this.getTradingSignal(signalId));
+        if (signal.indicator.params.resultOption === 'mdi') {
+          return this.getTradingSignal(signalId).mdi;
+        }
+        if (signal.indicator.params.resultOption === 'pdi') {
+          return this.getTradingSignal(signalId).pdi;
+        }
+      }
+      return (value as FasterMACDResult)?.[
+        signal.indicator.params.resultOption
+      ];
+    } else {
+      return value;
+    }
+  }
+
+  // value: 0, 'previous', Indicator
+  getBoundValue(
+    bound: 'upperBound' | 'lowerBound',
+    signal: Signal,
+    candle: Candle,
+    lastCandle: Candle,
+  ) {
+    const boundValue: number | string | Indicator = signal[bound].value;
+    if (typeof boundValue === 'number') {
+      // max or number
+      return boundValue;
+    } else if (boundValue === 'previous') {
+      try {
+        if (signal.id === 'price') {
+          return lastCandle.close;
+        } else if (signal.id === 'volume') {
+          return lastCandle.volume;
+        } else {
+          return this.getTradingSignal(signal.id).getResult();
+        }
+      } catch (e) {
+        return;
+      }
+    } else if (boundValue === 'price') {
+      return Number(candle.close);
+    } else if (boundValue === 'volume') {
+      return Number(candle.volume);
+    } else if (typeof boundValue === 'object') {
+      let result = this.getIndicatorValue({
+        candle,
+        signal,
+        signalId: signal[bound].id,
+      });
+      const times = boundValue?.params?.times;
+      if (times) {
+        result = result * Number(boundValue.params.times);
+      }
+      return result;
+    } else {
+      throw new Error('Invalid bound value');
+    }
   }
 }

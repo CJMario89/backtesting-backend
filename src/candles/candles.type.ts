@@ -16,12 +16,12 @@ export type Interval =
   | '1mon';
 
 export type Candle = {
-  openTime: string;
-  open: string;
-  high: string;
-  low: string;
-  close: string;
-  volume: string;
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
 };
 
 export type getCandleDto = {

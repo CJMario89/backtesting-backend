@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { BacktestService } from './backtest.service';
 import { BacktestController } from './backtest.controller';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
-  imports: [],
+  imports: [PrismaModule],
   controllers: [BacktestController],
   providers: [BacktestService],
 })

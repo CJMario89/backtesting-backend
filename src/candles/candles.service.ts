@@ -1,18 +1,12 @@
+import { PrismaService } from 'src/prisma/prisma-service';
 import { Candle, getCandleDto } from './candles.type';
 
 import { Injectable } from '@nestjs/common';
-import { InjectEntityManager } from '@nestjs/typeorm';
-
-import { EntityManager } from 'typeorm';
-import { AppDataSource } from 'src/data-source';
 const candleNumber = 3000;
 
 @Injectable()
 export class CandlesService {
-  constructor(
-    @InjectEntityManager(AppDataSource)
-    private readonly entityManager: EntityManager,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
   async getCandles({
     interval,
@@ -31,24 +25,21 @@ export class CandlesService {
       throw 'No page provided';
     }
 
-    const data = await this.entityManager.query(
-      `
+    const data = (await this.prisma.$queryRawUnsafe(`
       SELECT 
-        "openTime",
+        "time",
         "open",
         "high",
         "low",
         "close",
         "volume"
       FROM ${symbol}_${interval}
-      ORDER BY "openTime" DESC
+      ORDER BY "time" DESC
       LIMIT ${candleNumber}
-      OFFSET ${(parseInt(page) - 1) * candleNumber}`,
-    );
-
+      OFFSET ${(parseInt(page) - 1) * candleNumber}`)) as any[];
     return data
       .map((candle) => ({
-        time: Number(candle.openTime) / 1000,
+        time: Number(candle.time) / 1000,
         open: Number(candle.open),
         high: Number(candle.high),
         low: Number(candle.low),

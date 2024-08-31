@@ -9,7 +9,7 @@ export const testBuySignals = [
         id: 'b1l',
         name: '1716028648929',
         value: {
-          name: 'ema',
+          name: 'EMA',
           params: {
             period: '4',
             max: Infinity,
@@ -22,7 +22,7 @@ export const testBuySignals = [
         id: 'b1u',
         name: '1716028642989',
         value: {
-          name: 'ema',
+          name: 'EMA',
           params: {
             period: '2',
             max: Infinity,
@@ -32,9 +32,8 @@ export const testBuySignals = [
         },
       },
       logicOperator: 'and',
-      indicatorId: '1716028645927',
       indicator: {
-        name: 'ema',
+        name: 'EMA',
         params: {
           period: '3',
           max: Infinity,
@@ -57,9 +56,8 @@ export const testBuySignals = [
         value: 100,
       },
       logicOperator: 'or',
-      indicatorId: '1716028664889',
       indicator: {
-        name: 'rsi',
+        name: 'RSI',
         params: {
           period: '3',
           max: 100,
@@ -84,9 +82,8 @@ export const testBuySignals = [
         value: 30,
       },
       logicOperator: 'and',
-      indicatorId: '1716028664889',
       indicator: {
-        name: 'rsi',
+        name: 'RSI',
         params: {
           period: '3',
           max: 100,
@@ -96,7 +93,7 @@ export const testBuySignals = [
       },
     },
   ],
-];
+] as Signal[][];
 
 export const testSellSignals = [
   [
@@ -114,9 +111,8 @@ export const testSellSignals = [
         value: 100,
       },
       logicOperator: 'or',
-      indicatorId: '1716028664889',
       indicator: {
-        name: 'rsi',
+        name: 'RSI',
         params: {
           period: '3',
           max: 100,
@@ -134,7 +130,7 @@ export const testSellSignals = [
         id: 's2l',
         name: '1716028642989',
         value: {
-          name: 'ema',
+          name: 'EMA',
           params: {
             period: '2',
             max: Infinity,
@@ -147,7 +143,7 @@ export const testSellSignals = [
         id: 's2u',
         name: '1716028648929',
         value: {
-          name: 'ema',
+          name: 'EMA',
           params: {
             period: '4',
             max: Infinity,
@@ -157,9 +153,8 @@ export const testSellSignals = [
         },
       },
       logicOperator: 'and',
-      indicatorId: '1716028645927',
       indicator: {
-        name: 'ema',
+        name: 'EMA',
         params: {
           period: '3',
           max: Infinity,
@@ -169,32 +164,34 @@ export const testSellSignals = [
       },
     },
   ],
-];
+] as Signal[][];
 
 export const testSignal1 = {
   id: '1',
+  logicOperator: 'and',
+  action: 'buy',
   lowerBound: {
     id: 'lowerbound1',
     value: {
-      id: '1716028648929',
-      name: 'sma',
+      name: 'SMA',
       params: {
         period: '4',
       },
+      id: '1716028648929',
     },
   },
   upperBound: {
     id: 'upperbound1',
     value: {
-      id: '1716028648929',
-      name: 'sma',
+      name: 'SMA',
       params: {
         period: '2',
       },
+      id: '1716028648929',
     },
   },
   indicator: {
-    name: 'sma',
+    name: 'SMA',
     params: {
       period: '3',
     },
@@ -204,6 +201,8 @@ export const testSignal1 = {
 
 export const testSignal2 = {
   id: '2',
+  action: 'buy',
+  logicOperator: 'and',
   lowerBound: {
     id: 'lowerbound2',
     name: 'value',
@@ -215,7 +214,7 @@ export const testSignal2 = {
     value: 100,
   },
   indicator: {
-    name: 'rsi',
+    name: 'RSI',
     params: {
       period: '3',
     },
@@ -225,6 +224,8 @@ export const testSignal2 = {
 
 export const testSignal3 = {
   id: '3',
+  action: 'buy',
+  logicOperator: 'and',
   lowerBound: {
     id: 'lowerbound3',
     value: 'previous',
@@ -235,7 +236,7 @@ export const testSignal3 = {
     value: Infinity, // to be fixed
   },
   indicator: {
-    name: 'ema',
+    name: 'EMA',
     params: {
       period: '3',
     },
@@ -244,27 +245,27 @@ export const testSignal3 = {
 } as Signal;
 
 export const testCandles = [3, 6, 1, 8, 5, 9].map((candle, index) => ({
-  close: candle.toString(),
-  volume: '1',
-  openTime: ((index + 1) * 1000).toString(),
-  open: '1',
-  high: '1',
-  low: '1',
+  close: candle,
+  volume: 1,
+  time: (index + 1) * 1000,
+  open: 1,
+  high: 1,
+  low: 1,
 }));
 
 export const testCandles2 = [4, 3, 3, 4, 5, 5, 6, 1, 2, 2].map(
   (candle, index) => ({
-    close: candle.toString(),
-    volume: '1',
-    openTime: ((index + 1) * 1000).toString(),
-    open: '1',
-    high: '1',
-    low: '1',
+    close: candle,
+    volume: 1,
+    time: (index + 1) * 1000,
+    open: 1,
+    high: 1,
+    low: 1,
   }),
 ); //24 candles
 //buy cal by script
-// ema(4)
-export const testCandles2_ema4 = [
+// EMA(4)
+export const testCandles2_EMA4 = [
   '4',
   '4',
   '3',
@@ -276,8 +277,8 @@ export const testCandles2_ema4 = [
   '3',
   '3',
 ];
-// ema(3)
-export const testCandles2_ema3 = [
+// EMA(3)
+export const testCandles2_EMA3 = [
   '4',
   '4',
   '3',
@@ -289,8 +290,8 @@ export const testCandles2_ema3 = [
   '3',
   '2',
 ];
-// ema(2)
-export const testCandles2_ema2 = [
+// EMA(2)
+export const testCandles2_EMA2 = [
   '4',
   '3',
   '3',
@@ -317,18 +318,18 @@ export const testCandles2_rsi3 = [
 ];
 
 export const testCandles3 = [6, 2, 3, 5, 8, 7, 6, 6].map((candle, index) => ({
-  close: candle.toString(),
-  volume: '1',
-  openTime: ((index + 1) * 1000).toString(),
-  open: '1',
-  high: '1',
-  low: '1',
+  close: candle,
+  volume: 1,
+  time: (index + 1) * 1000,
+  open: 1,
+  high: 1,
+  low: 1,
 }));
 
-export const testCandles3_ema2 = ['6', '3', '3', '4', '7', '7', '6', '6'];
+export const testCandles3_EMA2 = ['6', '3', '3', '4', '7', '7', '6', '6'];
 
-export const testCandles3_ema3 = ['6', '4', '4', '4', '6', '7', '6', '6'];
-export const testCandles3_ema4 = ['6', '4', '4', '4', '6', '6', '6', '6'];
+export const testCandles3_EMA3 = ['6', '4', '4', '4', '6', '7', '6', '6'];
+export const testCandles3_EMA4 = ['6', '4', '4', '4', '6', '6', '6', '6'];
 
 export const testCandles3_rsi3 = [
   undefined,
