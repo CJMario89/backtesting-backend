@@ -49,7 +49,7 @@ export type Trade = {
 export type BackTestOutput = {
   candles: Candle[];
   buySellCandlesPairs: Trade[];
-  initailCaptial: number;
+  initialCaptial: number;
   capital: number;
   totalProfit: number;
   totalDuration: number;

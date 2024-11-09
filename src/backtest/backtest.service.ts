@@ -127,9 +127,9 @@ export class BacktestService {
     });
 
     const totalDuration = Number(end) - Number(start);
-    const profitRate = totalProfit / capital;
+    const profitRate = (totalProfit / capital) * 100;
     const totalYears = totalDuration / (1000 * 60 * 60 * 24 * 365);
-    const annualizedReturn = Math.pow(1 + profitRate, 1 / totalYears) - 1;
+    const annualizedReturn = (totalProfit / capital) * (1 / totalYears) * 100;
     return {
       candles: candles.map((candle) => ({
         time: Number(candle.time) / 1000,
@@ -141,7 +141,7 @@ export class BacktestService {
       })),
       startTime: start,
       endTime: end,
-      initailCaptial: capital,
+      initialCaptial: capital,
       capital: capital + totalProfit,
       buySellCandlesPairs: trades,
       totalProfit,
@@ -213,6 +213,8 @@ export class BacktestService {
           ) {
             shouldBuySignal = false; //can't buy
           }
+          console.log(lowerBound, currentValue, upperBound);
+
           if (currentValue > upperBound || currentValue < lowerBound) {
             shouldBuySignal = false; //can't buy
           }
@@ -227,6 +229,7 @@ export class BacktestService {
         });
         if (shouldBuySignal) {
           shouldBuy = true;
+
           _buySignals.push(signals);
         }
       });
@@ -278,10 +281,42 @@ export class BacktestService {
         const percentProfit = drawdown;
         if (percentProfit < stopLoss) {
           shouldSell = true;
+          _sellSignals.push([
+            {
+              id: 'stopLoss',
+              indicator: {
+                displayName: 'Stop Loss',
+              },
+              action: 'sell',
+              logicOperator: 'and',
+              upperBound: {
+                id: 'stopLoss',
+                name: 'number',
+                value: stopLoss + '%',
+              },
+              lowerBound: {},
+            },
+          ]);
         }
 
         if (percentProfit > takeProfit) {
           shouldSell = true;
+          _sellSignals.push([
+            {
+              id: 'takeProfit',
+              indicator: {
+                displayName: 'Take Profit',
+              },
+              action: 'sell',
+              logicOperator: 'and',
+              upperBound: {},
+              lowerBound: {
+                id: 'takeProfit',
+                name: 'number',
+                value: takeProfit + '%',
+              },
+            },
+          ]);
         }
       }
       // console.debug(index);
@@ -482,16 +517,29 @@ export class BacktestService {
       return candle.volume;
     }
     if (signal.indicator.params.input === 'candleVolume') {
-      value = this.getTradingSignal(signalId).update(candle);
+      value = this.getTradingSignal(signalId).update({
+        open: Number(candle.open),
+        close: Number(candle.close),
+        high: Number(candle.high),
+        low: Number(candle.low),
+        time: Number(candle.time),
+        volume: Number(candle.volume),
+      });
     } else if (signal.indicator.params.input === 'candle') {
-      value = this.getTradingSignal(signalId).update(candle);
+      value = this.getTradingSignal(signalId).update({
+        open: Number(candle.open),
+        close: Number(candle.close),
+        high: Number(candle.high),
+        low: Number(candle.low),
+        time: Number(candle.time),
+        volume: Number(candle.volume),
+      });
     } else {
-      value = this.getTradingSignal(signalId).update(candle.close);
+      value = this.getTradingSignal(signalId).update(Number(candle.close));
     }
     // MACD or BBANDS or Stochastic
     if (signal.indicator.params.resultOption && typeof value !== 'undefined') {
       if (signal.indicator.name === 'ADX' || signal.indicator.name === 'DX') {
-        console.debug(this.getTradingSignal(signalId));
         if (signal.indicator.params.resultOption === 'mdi') {
           return this.getTradingSignal(signalId).mdi;
         }
@@ -515,6 +563,7 @@ export class BacktestService {
     lastCandle: Candle,
   ) {
     const boundValue: number | string | Indicator = signal[bound].value;
+
     if (typeof boundValue === 'number') {
       // max or number
       return boundValue;

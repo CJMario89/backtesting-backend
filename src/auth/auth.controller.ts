@@ -47,6 +47,6 @@ export class AuthController {
 
   @Get('logout')
   googleLogout(@Res({ passthrough: true }) res: Response) {
-    return res.clearCookie('jwt');
+    return res.clearCookie('jwt').json({ message: 'Logout success' });
   }
 }
