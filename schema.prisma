@@ -5,26 +5,29 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // sqlite
+  // provider = "postgresql"
+  provider = "sqlite"
+  // url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
 model user_profile {
-  id           String    @unique
-  google_id    String
-  email        String    @unique
-  display_name String
-  given_name   String
-  family_name  String
-  photo        String
-  provider     String
-  access_token String
+  id            String    @unique
+  google_id     String
+  email         String    @unique
+  display_name  String
+  given_name    String
+  family_name   String
+  photo         String
+  provider      String
+  access_token  String
   refresh_token String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deleted      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deleted       DateTime?
 
-  @@index([email], type: Hash)
+  @@index([email], type: BTree)
 }
 
 model user_subscription {
@@ -47,7 +50,7 @@ model user_subscription {
   updatedAt DateTime  @updatedAt
   deleted   DateTime?
 
-  @@index([user_id], type: Hash)
+  @@index([user_id], type: BTree)
 }
 
 model btcusdt_1m {
@@ -66,7 +69,7 @@ model btcusdt_1m {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_3m {
@@ -85,7 +88,7 @@ model btcusdt_3m {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_5m {
@@ -104,7 +107,7 @@ model btcusdt_5m {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_15m {
@@ -123,7 +126,7 @@ model btcusdt_15m {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_30m {
@@ -142,7 +145,7 @@ model btcusdt_30m {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_1h {
@@ -161,7 +164,7 @@ model btcusdt_1h {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_2h {
@@ -180,7 +183,7 @@ model btcusdt_2h {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_4h {
@@ -199,7 +202,7 @@ model btcusdt_4h {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_6h {
@@ -218,7 +221,7 @@ model btcusdt_6h {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_8h {
@@ -237,7 +240,7 @@ model btcusdt_8h {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_12h {
@@ -256,7 +259,7 @@ model btcusdt_12h {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_1d {
@@ -273,10 +276,10 @@ model btcusdt_1d {
   taker_buy_quote_asset_volume String @default("0")
   taker_buy_base_asset_volume  String @default("0")
   ignore                       String @default("0")
-  hashrate                     String @default("0")
+  BTreerate                    String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_3d {
@@ -295,7 +298,7 @@ model btcusdt_3d {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_1w {
@@ -314,7 +317,7 @@ model btcusdt_1w {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
 model btcusdt_1mon {
@@ -333,14 +336,14 @@ model btcusdt_1mon {
   ignore                       String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }
 
-model btc_hashrate_1d {
-  id       Int    @id @default(autoincrement())
-  time     String @default("0")
-  hashrate String @default("0")
+model btc_BTreerate_1d {
+  id        Int    @id @default(autoincrement())
+  time      String @default("0")
+  BTreerate String @default("0")
 
   @@unique([time])
-  @@index([time], type: Hash)
+  @@index([time], type: BTree)
 }

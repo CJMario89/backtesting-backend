@@ -20,45 +20,68 @@ interface Bar {
 }
 
 async function insertPrice(data: string[][]) {
-  await prisma.btcusdt_1m.createMany({
-    data: data.map((entry: string[]) => {
-      return {
-        time: entry[0].toString(),
-        open: entry[1],
-        high: entry[2],
-        low: entry[3],
-        close: entry[4],
-        volume: entry[5],
-        close_time: entry[6].toString(),
-        base_asset_volume: entry[7],
-        number_of_trades: entry[8].toString(),
-        taker_buy_quote_asset_volume: entry[9],
-        taker_buy_base_asset_volume: entry[10],
-        ignore: entry[11],
-      };
-    }),
-    skipDuplicates: true,
-  });
-  for (let i = 0; i < data.length; i++) {
-    const deltaT = Number(data?.[i]?.[0]) - 1502942400000;
-    await Promise.all([
-      await insertMinuteTimeFrame(deltaT, 3),
-      await insertMinuteTimeFrame(deltaT, 5),
-      await insertMinuteTimeFrame(deltaT, 15),
-      await insertMinuteTimeFrame(deltaT, 30),
-      await insertMinuteTimeFrame(deltaT, 60),
-      await insertHourTimeFrame(deltaT, 2),
-      await insertHourTimeFrame(deltaT, 4),
-      await insertHourTimeFrame(deltaT, 6),
-      await insertHourTimeFrame(deltaT, 8),
-      await insertHourTimeFrame(deltaT, 12),
-      await insertHourTimeFrame(deltaT, 24),
-      await insertDayTimeFrame(deltaT, 3),
-      await insertDayTimeFrame(deltaT, 7),
-      await insertDayTimeFrame(deltaT, 30),
-    ]);
+  try {
+    await prisma.$transaction(
+      data.map((entry: string[]) =>
+        prisma.btcusdt_1m.upsert({
+          where: {
+            time: entry[0].toString(),
+          },
+          update: {
+            open: entry[1],
+            high: entry[2],
+            low: entry[3],
+            close: entry[4],
+            volume: entry[5],
+            close_time: entry[6].toString(),
+            base_asset_volume: entry[7],
+            number_of_trades: entry[8].toString(),
+            taker_buy_quote_asset_volume: entry[9],
+            taker_buy_base_asset_volume: entry[10],
+            ignore: entry[11],
+          },
+          create: {
+            time: entry[0].toString(),
+            open: entry[1],
+            high: entry[2],
+            low: entry[3],
+            close: entry[4],
+            volume: entry[5],
+            close_time: entry[6].toString(),
+            base_asset_volume: entry[7],
+            number_of_trades: entry[8].toString(),
+            taker_buy_quote_asset_volume: entry[9],
+            taker_buy_base_asset_volume: entry[10],
+            ignore: entry[11],
+          },
+        }),
+      ),
+    );
+
+    for (let i = 0; i < data.length; i++) {
+      const deltaT = Number(data?.[i]?.[0]) - 1502942400000;
+      await Promise.all([
+        await insertMinuteTimeFrame(deltaT, 3),
+        await insertMinuteTimeFrame(deltaT, 5),
+        await insertMinuteTimeFrame(deltaT, 15),
+        await insertMinuteTimeFrame(deltaT, 30),
+        await insertMinuteTimeFrame(deltaT, 60),
+        await insertHourTimeFrame(deltaT, 2),
+        await insertHourTimeFrame(deltaT, 4),
+        await insertHourTimeFrame(deltaT, 6),
+        await insertHourTimeFrame(deltaT, 8),
+        await insertHourTimeFrame(deltaT, 12),
+        await insertHourTimeFrame(deltaT, 24),
+        await insertDayTimeFrame(deltaT, 3),
+        await insertDayTimeFrame(deltaT, 7),
+        await insertDayTimeFrame(deltaT, 30),
+      ]);
+    }
+    console.log('done');
+  } catch (error) {
+    console.error('Error inserting price data:', error);
+    throw error;
   }
-  console.log('done');
 }
 
 const minuteInMilliseconds = 60000;
@@ -83,7 +106,7 @@ CronJob.from({
 
 async function findNextTime() {
   const lastestTime: { max: string }[] =
-    await prisma.$queryRaw`SELECT MAX("time") FROM "btcusdt_1m"`;
+    await prisma.$queryRaw`SELECT MAX("time") as max FROM "btcusdt_1m"`;
   return lastestTime[0]?.max
     ? Number(lastestTime[0]?.max) + minuteInMilliseconds
     : null;
@@ -122,28 +145,48 @@ async function insertMinuteTimeFrame(deltaT: number, minutes: number) {
 
   switch (minutes) {
     case 3:
-      await prisma.btcusdt_3m.create({
-        data: bar,
+      await prisma.btcusdt_3m.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 5:
-      await prisma.btcusdt_5m.create({
-        data: bar,
+      await prisma.btcusdt_5m.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 15:
-      await prisma.btcusdt_15m.create({
-        data: bar,
+      await prisma.btcusdt_15m.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 30:
-      await prisma.btcusdt_30m.create({
-        data: bar,
+      await prisma.btcusdt_30m.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 60:
-      await prisma.btcusdt_1h.create({
-        data: bar,
+      await prisma.btcusdt_1h.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
   }
@@ -181,33 +224,57 @@ async function insertHourTimeFrame(deltaT: number, hours: number) {
 
   switch (hours) {
     case 2:
-      await prisma.btcusdt_2h.create({
-        data: bar,
+      await prisma.btcusdt_2h.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 4:
-      await prisma.btcusdt_4h.create({
-        data: bar,
+      await prisma.btcusdt_4h.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 6:
-      await prisma.btcusdt_6h.create({
-        data: bar,
+      await prisma.btcusdt_6h.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 8:
-      await prisma.btcusdt_8h.create({
-        data: bar,
+      await prisma.btcusdt_8h.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 12:
-      await prisma.btcusdt_12h.create({
-        data: bar,
+      await prisma.btcusdt_12h.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 24:
-      await prisma.btcusdt_1d.create({
-        data: bar,
+      await prisma.btcusdt_1d.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
   }
@@ -246,18 +313,30 @@ async function insertDayTimeFrame(deltaT: number, days: number) {
 
   switch (days) {
     case 3:
-      await prisma.btcusdt_3d.create({
-        data: bar,
+      await prisma.btcusdt_3d.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 7:
-      await prisma.btcusdt_1w.create({
-        data: bar,
+      await prisma.btcusdt_1w.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
     case 30:
-      await prisma.btcusdt_1mon.create({
-        data: bar,
+      await prisma.btcusdt_1mon.upsert({
+        where: {
+          time: bar.time,
+        },
+        update: bar,
+        create: bar,
       });
       break;
   }
