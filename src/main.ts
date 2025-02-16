@@ -9,8 +9,8 @@ async function bootstrap() {
   app.use(cookieParser());
   app.enableCors({
     credentials: true,
-    origin: ['http://localhost:3002'],
-    methods: ['GET', 'POST'],
+    origin: ['https://calisthenics.cc'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
   });
   await app.listen(3001);
 }
